@@ -3,11 +3,14 @@ import { LoadGamePacket } from '../packets/outgoing/load-game';
 import { IncomingPacket } from '../packets/packet';
 import { LoadGameAck } from '../packets/incoming/load-game-ack';
 import { FailurePacket, FailureCode } from '../packets/outgoing/failure';
-import { StartGamePacket } from '../packets/outgoing/start-game';
+// import { StartGamePacket } from '../packets/outgoing/start-game';
 import { Player } from './player';
 import { getSpawnPoint } from '../util/get-spawn-point';
 import println from '../log/log';
 import { PacketType } from '../packets/packet-type';
+import { Direction } from '../models/direction';
+import { PlayerInfo } from '../packets/data/player-info';
+import { TickPacket } from '../packets/outgoing/tick';
 
 const MAP_SIZE = 200;
 const TICK_RATE = 1000 / 128;
@@ -24,37 +27,56 @@ export class Game {
 
   constructor(players: Map<string, LobbyClient>) {
     this.players = new Map();
+
     let i = 0;
     for (const player of players) {
       const id = this.nextId;
-      this.players.set(id, new Player(
-        player[1].io,
-        id,
-        player[1].info.name,
-        getSpawnPoint(200, i++, players.size),
-      ));
+
+      const info = new PlayerInfo();
+      info.id = id;
+      info.position = getSpawnPoint(200, i++, players.size);
+      info.direction = Direction.Right;
+
+      this.players.set(id, new Player(player[1].io, player[1].info.name, info));
     }
   }
 
   sendStartGame() {
-    const startTime = new StartGamePacket(Date.now() + 6000);
-    for (const pl of this.players.values()) {
-      if (pl.io) {
-        pl.io.send(startTime, 'StartTime packet to start the game at the specified time.');
-      }
-    }
-    setTimeout(() => {
-      this.runGame();
-    }, 6000);
+    // const startTime = new StartGamePacket(Date.now() + 6000);
+    // for (const pl of this.players.values()) {
+    //   if (pl.io) {
+    //     pl.io.send(startTime, 'StartTime packet to start the game at the specified time.');
+    //   }
+    // }
+    // testing, just start the game straight away.
+    this.runGame();
+    // setTimeout(() => {
+    // }, 6000);
   }
 
   // TODO: implement fully
   runGame() {
-    // send ticks every 1000 / TICK_RATE ms
+    // handle disconnections.
+    for (const player of this.players.values()) {
+      if (player.io) {
+        player.io.socket.once('close', () => {
+          player.io = null;
+        });
+      }
+    }
+    const tick = new TickPacket([...this.players.values()].map((i) => i.info));
+    // send ticks every TICK_RATE ms
     const tickLoop = setInterval(() => {
-      // end game
-      clearInterval(tickLoop);
-    }, 1000 / TICK_RATE);
+      for (const [id, player] of this.players) {
+        if (player.io) {
+          player.io.send(tick, `Game tick for ${id}`);
+        }
+      }
+      if (this.players.size === 1) {
+        // end game
+        clearInterval(tickLoop);
+      }
+    }, TICK_RATE);
   }
 
   start() {
@@ -76,33 +98,42 @@ export class Game {
         }
         this.players.get(id).io = null;
       }
+      println('Game', 'Ack timeout reached, ready to start the game.');
       this.sendStartGame();
     }, 30_000);
 
     for (const player of this.players.values()) {
       if (!player.io) {
+        awaitingAck.delete(player.info.id);
         continue;
       }
-      const loadGame = new LoadGamePacket(player.id, MAP_SIZE);
+      const loadGame = new LoadGamePacket(player.info.id, MAP_SIZE);
       player.io.send(loadGame, 'LoadGame packet to prompt clients to load game scene ');
       player.io.once('packet', (packet: IncomingPacket) => {
         if (!(packet instanceof LoadGameAck)) {
           player.io.emit('error', new Error('No LoadGameAck received.'));
-          println('Player', PacketType[packet.id]);
+          println('Player', `Should've received LoadGameAck but received ${PacketType[packet.id]}`);
           player.io = null;
-          awaitingAck.delete(player.id);
+          awaitingAck.delete(player.info.id);
         } else {
-          if (packet.clientId !== player.id) {
+          if (packet.clientId !== player.info.id) {
             const failure = new FailurePacket(FailureCode.IncorrectClientId, 'Incorrect client id provided for game.');
             player.io.send(failure, 'Player did not send correct client id in LoadGameAck.');
             player.io.emit('error', new Error('Invalid client id provided for game.'));
             player.io = null;
-            awaitingAck.delete(player.id);
+            awaitingAck.delete(player.info.id);
             return;
           }
-          awaitingAck.delete(player.id);
+          // send initial tick to tell the player about the game.
+          println('Game', 'Sending initial tick for player');
+          const initialTick = new TickPacket([...this.players.values()].map((i) => i.info));
+          if (player.io) {
+            player.io.send(initialTick, 'Initial tick packet.');
+          }
+          awaitingAck.delete(player.info.id);
           if (awaitingAck.size === 0) {
             clearTimeout(waitingForPlayersTimer);
+            println('Game', 'All players have acked. Ready to start the game.');
             this.sendStartGame();
           }
         }

@@ -1,16 +1,16 @@
 import { OutgoingPacket } from '../packet';
 import { PacketType } from '../packet-type';
 import { PacketBuffer } from '../packet-buffer';
-import { PlayerInfo } from '../data/player-info';
+import { LobbyInfo } from '../data/lobby-info';
 
 export class LobbyInfoPacket implements OutgoingPacket {
   id = PacketType.lobbyInfo;
   /**
    * Information about the players currently connected to the lobby.
    */
-  playerInfo: PlayerInfo[];
+  playerInfo: LobbyInfo[];
 
-  constructor(playerInfo: PlayerInfo[] = []) {
+  constructor(playerInfo: LobbyInfo[] = []) {
     this.playerInfo = playerInfo;
   }
 

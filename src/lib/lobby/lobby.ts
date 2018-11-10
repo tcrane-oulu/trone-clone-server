@@ -3,7 +3,7 @@ import { LobbyInfoPacket } from '../packets/outgoing/lobby-info';
 import { Game } from '../game/game';
 import { LobbyUpdate } from '../packets/incoming/lobby-update';
 import { IncomingPacket } from '../packets/packet';
-import { PlayerInfo } from '../packets/data/player-info';
+import { LobbyInfo } from '../packets/data/lobby-info';
 import println from '../log/log';
 
 export class Lobby {
@@ -13,7 +13,7 @@ export class Lobby {
     this.clients = new Map<string, LobbyClient>();
     this.clients.set('Testing Guy', {
       io: null,
-      info: new PlayerInfo('Testing Guy', true),
+      info: new LobbyInfo('Testing Guy', true),
     });
   }
 

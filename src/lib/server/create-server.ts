@@ -5,7 +5,7 @@ import { IncomingPacket } from '../packets/packet';
 import { Lobby } from '../lobby/lobby';
 import { LoginPacket } from '../packets/incoming/login';
 import { FailurePacket, FailureCode } from '../packets/outgoing/failure';
-import { PlayerInfo } from '../packets/data/player-info';
+import { LobbyInfo } from '../packets/data/lobby-info';
 import chalk from 'chalk';
 import println from '../log/log';
 
@@ -54,7 +54,7 @@ export function createServer(serverOptions: ServerOptions): Server {
           } else {
             lobby.addClient({
               io,
-              info: new PlayerInfo(packet.name),
+              info: new LobbyInfo(packet.name),
             });
           }
         } else {

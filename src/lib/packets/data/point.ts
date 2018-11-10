@@ -11,6 +11,13 @@ export class Point implements Coordinate, DuplexPacket {
     this.y = y;
   }
 
+  angleTo(coordinate: Coordinate): number {
+    const dX = coordinate.x - this.x;
+    const dY = coordinate.y - this.y;
+    const angleRad = Math.atan2(dY, dX);
+    return angleRad * 180 / Math.PI;
+  }
+
   read(buffer: PacketBuffer) {
     this.x = buffer.readFloat();
     this.y = buffer.readFloat();

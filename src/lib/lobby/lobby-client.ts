@@ -1,5 +1,5 @@
 import { PacketIO } from '../packets/packetio';
-import { PlayerInfo } from '../packets/data/player-info';
+import { LobbyInfo } from '../packets/data/lobby-info';
 
 /**
  * A client connected to the lobby.
@@ -12,5 +12,5 @@ export interface LobbyClient {
   /**
    * Information about this client.
    */
-  info: PlayerInfo;
+  info: LobbyInfo;
 }
