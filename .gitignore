@@ -1,0 +1,6 @@
+# Node modules and build result.
+node_modules/
+dist/
+
+# Various other stuff.
+test-client/
