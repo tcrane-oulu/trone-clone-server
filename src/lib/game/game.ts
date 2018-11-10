@@ -13,8 +13,8 @@ import { PlayerInfo } from '../packets/data/player-info';
 import { TickPacket } from '../packets/outgoing/tick';
 
 const MAP_SIZE = 200;
-const TICK_RATE = 1000 / 128;
-// const SPEED_TILES_PER_TICK = 2 / TICK_RATE;
+const TICK_RATE = 128;
+const SPEED_TILES_PER_TICK = 2 / TICK_RATE;
 
 export class Game {
 
@@ -68,15 +68,33 @@ export class Game {
     // send ticks every TICK_RATE ms
     const tickLoop = setInterval(() => {
       for (const [id, player] of this.players) {
+        // change the pos of the car according to the direction.
+        // move this code somewhere else at some point.
+        switch (player.info.direction) {
+          case Direction.Right:
+            player.info.position.x += SPEED_TILES_PER_TICK;
+            break;
+          case Direction.Left:
+            player.info.position.x -= SPEED_TILES_PER_TICK;
+            break;
+          case Direction.Up:
+            player.info.position.y += SPEED_TILES_PER_TICK;
+            break;
+          case Direction.Down:
+            player.info.position.y -= SPEED_TILES_PER_TICK;
+            break;
+        }
         if (player.io) {
           player.io.send(tick, `Game tick for ${id}`);
         }
       }
+      // the logic for ending the game here is
+      // beyond broken fix this at some point.
       if (this.players.size === 1) {
         // end game
         clearInterval(tickLoop);
       }
-    }, TICK_RATE);
+    }, 1000 / TICK_RATE);
   }
 
   start() {
