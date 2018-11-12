@@ -66,6 +66,8 @@ export class Game {
     }
     const tick = new TickPacket([...this.players.values()].map((i) => i.info));
     // send ticks every TICK_RATE ms
+    let tickCount = 0;
+    const threshold = TICK_RATE * 5;
     const tickLoop = setInterval(() => {
       for (const [id, player] of this.players) {
         // change the pos of the car according to the direction.
@@ -86,6 +88,11 @@ export class Game {
         }
         if (player.io) {
           player.io.send(tick, `Game tick for ${id}`);
+        }
+        tickCount++;
+        if  (tickCount >= threshold) {
+          tickCount = 0;
+          player.info.direction = (player.info.direction + 1) % 4;
         }
       }
       // the logic for ending the game here is
