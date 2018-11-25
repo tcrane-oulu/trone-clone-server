@@ -1,33 +1,30 @@
 import { Socket } from 'net';
 import { PacketBuffer } from './packet-buffer';
-import { EventEmitter } from 'events';
 import { OutgoingPacket, IncomingPacket } from './packet';
 import { PacketMap } from './packet-map';
 import { PacketType } from './packet-type';
-import chalk from 'chalk';
-import { forSender } from '../log/log';
+import { Emitter } from '../util/emitter';
 
-export class PacketIO extends EventEmitter {
+export class PacketIO extends Emitter {
   incomingBuffer: PacketBuffer;
   outgoingBuffer: PacketBuffer;
-  logger: (str: string) => void;
 
   // tslint:disable-next-line:no-console
-  constructor(readonly socket: Socket, readonly name: string) {
+  constructor(readonly socket: Socket) {
     super();
     this.incomingBuffer = new PacketBuffer(5);
     this.outgoingBuffer = new PacketBuffer(1024);
-    socket.on('data', this.onData.bind(this));
-    this.logger = forSender(chalk.gray(this.name + '::IO'));
+    // there might not be a socket if this is was created for a dummy client.
+    if (this.socket) {
+      socket.on('data', this.onData.bind(this));
+    }
   }
 
-  send(packet: OutgoingPacket, reason: string): void {
-    if (!reason) {
-      this.emit('A reason is required to send a packet.');
+  send(packet: OutgoingPacket): void {
+    if (!this.socket || !this.socket.writable) {
       return;
     }
     if (!packet) {
-      this.logger(`"${chalk.gray(`"${reason}"`)} - passed an undefined packet.`);
       return;
     }
     this.outgoingBuffer.data.writeInt8(packet.id, 0);
@@ -35,8 +32,13 @@ export class PacketIO extends EventEmitter {
     packet.write(this.outgoingBuffer);
     this.outgoingBuffer.resizeBuffer(this.outgoingBuffer.bufferIndex);
     this.outgoingBuffer.data.writeInt32BE(this.outgoingBuffer.length, 1);
-    this.logger(`WRITE ${PacketType[packet.id]}, ${this.outgoingBuffer.length}`);
     this.socket.write(this.outgoingBuffer.data.slice(0, this.outgoingBuffer.length));
+  }
+
+  destroy(error?: Error) {
+    if (this.socket) {
+      this.socket.destroy(error);
+    }
   }
 
   private onData(data: Buffer) {
@@ -64,8 +66,7 @@ export class PacketIO extends EventEmitter {
       } else {
         // get the header.
         const id = this.incomingBuffer.readUnsignedByte();
-        const length = this.incomingBuffer.readInt32();
-        this.logger(`READ ${PacketType[id]}, ${length}`);
+        this.incomingBuffer.readInt32(); // skip the length
 
         // create the packet
         let packet: IncomingPacket;

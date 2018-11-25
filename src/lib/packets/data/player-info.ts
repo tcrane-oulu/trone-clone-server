@@ -8,13 +8,13 @@ export class PlayerInfo implements DuplexPacket {
   position: Point;
   direction: Direction;
   read(buffer: PacketBuffer): void {
-    this.id = buffer.readShort();
+    this.id = buffer.readInt32();
     this.position = new Point();
     this.position.read(buffer);
     this.direction = buffer.readByte();
   }
   write(buffer: PacketBuffer): void {
-    buffer.writeShort(this.id);
+    buffer.writeInt32(this.id);
     this.position.write(buffer);
     buffer.writeByte(this.direction);
   }

@@ -14,7 +14,7 @@ export class LoadGamePacket implements OutgoingPacket {
   }
 
   write(buffer: PacketBuffer) {
-    buffer.writeUnsignedByte(this.clientId);
+    buffer.writeInt32(this.clientId);
     buffer.writeShort(this.mapSize);
   }
 }

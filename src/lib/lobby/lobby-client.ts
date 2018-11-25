@@ -1,14 +1,14 @@
-import { PacketIO } from '../packets/packetio';
 import { LobbyInfo } from '../packets/data/lobby-info';
+import { Client } from '../models/client';
 
 /**
  * A client connected to the lobby.
  */
 export interface LobbyClient {
   /**
-   * The packet interface for this client.
+   * The client.
    */
-  io: PacketIO;
+  client: Client;
   /**
    * Information about this client.
    */

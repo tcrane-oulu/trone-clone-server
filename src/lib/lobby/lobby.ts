@@ -1,81 +1,113 @@
-import { LobbyClient } from './lobby-client';
-import { LobbyInfoPacket } from '../packets/outgoing/lobby-info';
-import { Game } from '../game/game';
-import { LobbyUpdate } from '../packets/incoming/lobby-update';
-import { IncomingPacket } from '../packets/packet';
-import { LobbyInfo } from '../packets/data/lobby-info';
+import { GameState } from '../models/game-state';
 import println from '../log/log';
+import { LoginPacket } from '../packets/incoming/login';
+import { LobbyClient } from './lobby-client';
+import { LobbyInfo } from '../packets/data/lobby-info';
+import { Session } from '../session';
+import { Client } from '../models/client';
+import { LobbyInfoPacket } from '../packets/outgoing/lobby-info';
+import { Emitter, EventListener } from '../util/emitter';
+import { LobbyUpdate } from '../packets/incoming/lobby-update';
+import { LoadingState } from '../game/loading-state';
+import chalk from 'chalk';
 
-export class Lobby {
-  readonly clients: Map<string, LobbyClient>;
+export class LobbyState extends Emitter implements GameState {
 
-  constructor() {
-    this.clients = new Map<string, LobbyClient>();
-    this.clients.set('Testing Guy', {
-      io: null,
-      info: new LobbyInfo('Testing Guy', true),
+  accept = true;
+
+  private players: Map<number, LobbyClient>;
+  private listeners: EventListener[];
+
+  constructor(session: Session) {
+    super();
+    this.players = new Map();
+    // add a fake client.
+    const fakeClient = new Client(undefined);
+    this.players.set(fakeClient.id, {
+      client: fakeClient,
+      info: new LobbyInfo('Fake Client', true),
     });
-  }
+    const enter = session.on('enter', (client: Client) => {
+      // wait 10 seconds max for a response.
+      const timer = setTimeout(() => {
+        println('Lobby', 'Removed io that did not send a login.');
+        client.io.destroy(new Error('No initial packet.'));
+      }, 10_000);
 
-  addClient(clientInfo: LobbyClient) {
-    if (this.clients.has(clientInfo.info.name)) {
-      // pretty crude, might fix later with regex.
-      clientInfo.info.name += ' 1';
-    }
-    // add the client and let everyone know a new client is connected.
-    this.clients.set(clientInfo.info.name, clientInfo);
-    this.broadcastUpdate();
-    const handleClose = () => {
-      const name = clientInfo.info.name;
-      println(name, 'disconnected from the lobby');
-      this.clients.delete(name);
-    };
-    const handleUpdate = (packet: IncomingPacket) => {
-      if (packet instanceof LobbyUpdate) {
-        clientInfo.info.ready = packet.ready;
-      }
-      // send the update to everyone else
-      this.broadcastUpdate();
-
-      // check if we can start the game.
-      if (this.clients.size >= 2) {
-        if (![...this.clients.values()].some((lc) => !lc.info.ready)) {
-          // remove the listeners first.
-          for (const client of this.clients.values()) {
-            if (client.io) {
-              client.io.removeListener('packet', handleUpdate);
-              client.io.removeListener('close', handleClose);
-            }
-          }
-          // now we can start.
-          this.createGame();
+      // listen for the initial packet.
+      client.io.once('packet', (packet) => {
+        clearTimeout(timer);
+        // if they didn't send a login packet, disconnect them.
+        if (!(packet instanceof LoginPacket)) {
+          client.io.destroy(new Error('Wrong initial packet.'));
+          return;
         }
+
+        // if they used the wrong version, disconnect them.
+        if (packet.version !== 12345) {
+          client.io.destroy(new Error(`Client using incorrect version (${packet.version})`));
+          return;
+        }
+        // everything is fine, add them to the lobby.
+        this.players.set(client.id, {
+          client,
+          info: new LobbyInfo(packet.name, false),
+        });
+        println('Lobby', `Player "${packet.name}" connected.`);
+        this.sendLobbyInfo();
+        // attach a listener for the lobby update packet.
+        const updateListener = client.io.on('packet', (update) => {
+          if (!(update instanceof LobbyUpdate)) {
+            return;
+          }
+          this.players.get(client.id).info.ready = update.ready;
+          this.sendLobbyInfo();
+          // if we can start the game, move into the next state.
+          if (this.canStart()) {
+            println('Lobby', 'Entering load game state.');
+            const loadingState = new LoadingState(new Map(this.players));
+            this.emit('next', loadingState);
+          }
+        });
+        this.listeners.push(updateListener);
+      });
+    });
+
+    // if the player leaves, remove them from the lobby.
+    const leave = session.on('leave', (client: Client) => {
+      if (this.players.has(client.id)) {
+        this.players.delete(client.id);
+        this.sendLobbyInfo();
       }
-    };
-    // attach a listener so we know if they updated their info.
-    if (clientInfo.io) {
-      clientInfo.io.on('packet', handleUpdate);
-      clientInfo.io.once('close', handleClose);
+    });
+    this.listeners = [enter, leave];
+  }
+
+  destroy(): void {
+    // dont leave any hanging event listeners.
+    for (const listener of this.listeners) {
+      listener.remove();
     }
+    println('Lobby', chalk.red('Destroyed lobby'));
   }
 
-  createGame() {
-    // clone the players.
-    const players = new Map(this.clients);
-    this.clients.clear();
-    // start the new game.
-    const game = new Game(players);
-    game.start();
+  private canStart(): boolean {
+    if (this.players.size < 2) {
+      // not enough players.
+      return false;
+    }
+    if ([...this.players.values()].some((lc) => !lc.info.ready)) {
+      // some players aren't ready.
+      return false;
+    }
+    return true;
   }
 
-  private broadcastUpdate() {
-    const lobbyInfo = new LobbyInfoPacket();
-    lobbyInfo.playerInfo = [...this.clients.values()].map((lc) => lc.info);
-    for (const client of this.clients.values()) {
-      // send lobby info.
-      if (client.io) {
-        client.io.send(lobbyInfo, 'Sending lobby info to client.');
-      }
+  private sendLobbyInfo() {
+    // broadcast the update.
+    const update = new LobbyInfoPacket([...this.players.values()].map((player) => player.info));
+    for (const lc of this.players.values()) {
+      lc.client.io.send(update);
     }
   }
 }

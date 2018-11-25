@@ -8,6 +8,6 @@ export class LoadGameAck implements IncomingPacket {
   clientId: number;
 
   read(buffer: PacketBuffer) {
-    this.clientId = buffer.readUnsignedByte();
+    this.clientId = buffer.readInt32();
   }
 }

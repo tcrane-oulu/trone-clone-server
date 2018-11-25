@@ -1,13 +1,13 @@
-import { PacketIO } from '../packets/packetio';
 import { PlayerInfo } from '../packets/data/player-info';
+import { Client } from '../models/client';
 
 export class Player {
-  io: PacketIO;
+  client: Client;
   name: string;
   info: PlayerInfo;
 
-  constructor(io: PacketIO, name: string, info: PlayerInfo) {
-    this.io = io;
+  constructor(client: Client, name: string, info: PlayerInfo) {
+    this.client = client;
     this.name = name;
     this.info = info;
   }

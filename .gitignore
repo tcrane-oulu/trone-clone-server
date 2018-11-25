@@ -4,3 +4,5 @@ dist/
 
 # Various other stuff.
 test-client/
+design.md
+.vscode/
