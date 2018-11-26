@@ -11,6 +11,7 @@ import { Direction } from '../models/direction';
 import { getSpawnPoint } from '../util/get-spawn-point';
 import { TickPacket } from '../packets/outgoing/tick';
 import { Game } from './game';
+import { MAP_SIZE } from '../globals';
 
 /**
  * This state is used to make sure all of the clients which were in
@@ -44,7 +45,7 @@ export class LoadingState extends Emitter implements GameState {
 
     // the clients here are the ones who were in the lobby, so send them a loadgame packet.
     for (const client of [...clients.values()].map((lc) => lc.client)) {
-      const loadGame = new LoadGamePacket(client.id, 200);
+      const loadGame = new LoadGamePacket(client.id, MAP_SIZE);
       client.io.send(loadGame);
       const listener = client.io.once('packet', (packet: LoadGameAck) => {
         this.pending.delete(client.id);
@@ -60,7 +61,7 @@ export class LoadingState extends Emitter implements GameState {
           player.info = new PlayerInfo();
           player.info.direction = Direction.Left;
           player.info.id = player.client.id;
-          player.info.position = getSpawnPoint(200, clients.size - this.pending.size, clients.size);
+          player.info.position = getSpawnPoint(MAP_SIZE, clients.size - this.pending.size, clients.size);
           this.sendFirstTick(players);
         }
         println('LoadingState', `Received response from ${client.id}`);

@@ -10,4 +10,5 @@ export enum PacketType {
   login,
   loadGameAck,
   lobbyUpdate,
+  playerUpdate,
 }

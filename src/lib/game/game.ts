@@ -5,10 +5,8 @@ import chalk from 'chalk';
 import { Player } from './player';
 import { TickPacket } from '../packets/outgoing/tick';
 import { Direction } from '../models/direction';
-
-// const MAP_SIZE = 200;
-const TICK_RATE = 48;
-const SPEED_TILES_PER_TICK = 2 / TICK_RATE;
+import { SPEED_TILES_PER_TICK, TICK_RATE } from '../globals';
+import { PlayerUpdate } from '../packets/incoming/player-update';
 
 /**
  * This state is used to make sure all of the clients which were in
@@ -23,6 +21,27 @@ export class Game extends Emitter implements GameState {
   constructor(players: Map<number, Player>) {
     super();
     this.listeners = [];
+    // attach the player update listeners.
+    for (const player of players.values()) {
+      const listener = player.client.io.on('packet', (packet: PlayerUpdate) => {
+        if (!(packet instanceof PlayerUpdate)) {
+          return;
+        }
+        const dir = packet.newDirection;
+        if (!Direction[dir]) {
+          println('Game', `Player ${player.client.id} send an invalid direction`);
+        }
+        // if the player tries to "turn around" (e.g. going from Up to Down),
+        // their direction will be equal to (currentDir + 2) % 4. So check that.
+        if (packet.newDirection === (player.info.direction + 2) % 4) {
+          println('Game', `Player ${player.client.id} tried to turn around.`);
+          return;
+          // nothing more to see here.
+        }
+        player.info.direction = packet.newDirection;
+      });
+      this.listeners.push(listener);
+    }
     // start sending ticks straight away.
     const tick = new TickPacket([...players.values()].map((i) => i.info));
     setInterval(() => {
