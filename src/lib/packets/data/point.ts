@@ -27,4 +27,11 @@ export class Point implements Coordinate, DuplexPacket {
     buffer.writeFloat(this.x);
     buffer.writeFloat(this.y);
   }
+
+  floor(): Coordinate {
+    return {
+      x: Math.floor(this.x),
+      y: Math.floor(this.y),
+    };
+  }
 }

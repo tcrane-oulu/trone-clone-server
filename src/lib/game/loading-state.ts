@@ -7,11 +7,11 @@ import chalk from 'chalk';
 import { Player } from './player';
 import { LobbyClient } from '../lobby/lobby-client';
 import { PlayerInfo } from '../packets/data/player-info';
-import { Direction } from '../models/direction';
 import { getSpawnPoint } from '../util/get-spawn-point';
 import { TickPacket } from '../packets/outgoing/tick';
 import { Game } from './game';
 import { MAP_SIZE } from '../globals';
+import { getInitialDirection } from '../util/get-initial-direction';
 
 /**
  * This state is used to make sure all of the clients which were in
@@ -59,9 +59,9 @@ export class LoadingState extends Emitter implements GameState {
           const player = players.get(client.id);
           // set up their player info.
           player.info = new PlayerInfo();
-          player.info.direction = Direction.Left;
+          player.info.direction = getInitialDirection(clients.size - this.pending.size, clients.size);
           player.info.id = player.client.id;
-          player.info.position = getSpawnPoint(MAP_SIZE, clients.size - this.pending.size, clients.size);
+          player.info.position = getSpawnPoint(clients.size - this.pending.size, clients.size);
           this.sendFirstTick(players);
         }
         println('LoadingState', `Received response from ${client.id}`);

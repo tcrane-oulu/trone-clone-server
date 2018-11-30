@@ -49,7 +49,12 @@ export class Session extends Emitter {
       this.currentState.destroy();
     }
     this.currentState = state;
-    this.currentState.once('next', this.next.bind(this));
+    if (state === undefined) {
+      // this session has entered its final state.
+      this.destroy();
+    } else {
+      this.currentState.once('next', this.next.bind(this));
+    }
   }
 
   private destroy(): void {

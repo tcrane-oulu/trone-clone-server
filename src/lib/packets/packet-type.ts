@@ -6,6 +6,8 @@ export enum PacketType {
   update,
   tick,
   startGame,
+  death,
+  endGame,
   // client packets
   login,
   loadGameAck,

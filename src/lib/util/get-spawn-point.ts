@@ -1,4 +1,5 @@
 import { Point } from '../packets/data/point';
+import { MAP_SIZE } from '../globals';
 
 /**
  * Create a circle of radius `r = size * 0.9`.
@@ -10,8 +11,10 @@ import { Point } from '../packets/data/point';
  * @param index The index in the spawn points array.
  * @param size The size of the spawn points array.
  */
-export function getSpawnPoint(mapSize: number, index: number, size: number): Point {
+export function getSpawnPoint(index: number, size: number): Point {
   const delta = (2 * Math.PI) / size;
-  const currentPoint = index * delta + 0.25 * Math.PI;
-  return new Point(Math.cos(currentPoint) * mapSize * 0.9, Math.sin(currentPoint) * mapSize * 0.9);
+  const currentPoint = index * delta; // + 0.25 * Math.PI;
+  const x = Math.cos(currentPoint) * (MAP_SIZE / 2) * 0.9 + (MAP_SIZE / 2);
+  const y = Math.sin(currentPoint) * (MAP_SIZE / 2) * 0.9 + (MAP_SIZE / 2);
+  return new Point(Math.floor(x) + 0.5, Math.floor(y) + 0.5);
 }

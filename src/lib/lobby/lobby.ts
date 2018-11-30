@@ -21,12 +21,14 @@ export class LobbyState extends Emitter implements GameState {
   constructor(session: Session) {
     super();
     this.players = new Map();
-    // add a fake client.
-    const fakeClient = new Client(undefined);
-    this.players.set(fakeClient.id, {
-      client: fakeClient,
-      info: new LobbyInfo('Fake Client', true),
-    });
+    // add some fake clients.
+    for (let i = 0; i < 7; i++) {
+      const fakeClient = new Client(undefined);
+      this.players.set(fakeClient.id, {
+        client: fakeClient,
+        info: new LobbyInfo(`Fake Client ${i + 1}`, true),
+      });
+    }
     const enter = session.on('enter', (client: Client) => {
       // wait 10 seconds max for a response.
       const timer = setTimeout(() => {
