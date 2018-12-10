@@ -6,7 +6,7 @@ export class StartGamePacket implements OutgoingPacket {
   id = PacketType.startGame;
 
   /**
-   * The time in milliseconds at which the game will start.
+   * The number of seconds until the game starts.
    */
   startTime: number;
 

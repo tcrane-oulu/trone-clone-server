@@ -12,6 +12,7 @@ import { TickPacket } from '../packets/outgoing/tick';
 import { Game } from './game';
 import { MAP_SIZE } from '../globals';
 import { getInitialDirection } from '../util/get-initial-direction';
+import { StartGamePacket } from '../packets/outgoing/start-game';
 
 /**
  * This state is used to make sure all of the clients which were in
@@ -92,10 +93,16 @@ export class LoadingState extends Emitter implements GameState {
   }
 
   private startGame(players: Map<number, Player>) {
-    println('LoadingState', `Starting game with ${players.size} players.`);
+    println('LoadingState', `Starting game with ${players.size} players. (in 3 seconds)`);
     // starting the game just involves moving into the next state.
-    const game = new Game(players);
-    this.emit('next', game);
+    const startGame = new StartGamePacket(3);
+    for (const value of players.values()) {
+      value.client.io.send(startGame);
+    }
+    setTimeout(() => {
+      const game = new Game(players);
+      this.emit('next', game);
+    }, 3000);
   }
 
   private sendFirstTick(players: Map<number, Player>) {

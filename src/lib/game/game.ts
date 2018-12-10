@@ -102,7 +102,13 @@ export class Game extends Emitter implements GameState {
         for (const player of players.values()) {
           player.client.io.send(endGame);
         }
-        this.emit('next', undefined); // this session is over.
+        if (this.tickInterval) {
+          clearInterval(this.tickInterval);
+          this.tickInterval = undefined;
+        }
+        setTimeout(() => {
+          this.emit('next', undefined); // this session is over.
+        }, 1000);
       }
     }, 1000 / TICK_RATE);
   }
