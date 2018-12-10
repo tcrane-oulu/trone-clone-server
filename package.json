@@ -4,7 +4,7 @@
   "description": "The game server for the Tron Clone game. Written for the RTSD term project.",
   "main": "dist/index.js",
   "scripts": {
-    "start": "npm run build && node dist/index",
+    "start": "npm run compile && node dist/index",
     "clean": "rimraf ./dist",
     "compile": "tsc -p .",
     "build": "npm run clean && npm run compile"
