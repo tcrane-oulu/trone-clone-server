@@ -12,10 +12,10 @@
   "author": "tcrane",
   "license": "MIT",
   "devDependencies": {
-    "@types/node": "^10.10.1",
     "rimraf": "^2.6.2"
   },
   "dependencies": {
+    "@types/node": "^10.12.12",
     "chalk": "^2.4.1",
     "typescript": "^3.2.2"
   }
