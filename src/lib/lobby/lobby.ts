@@ -10,6 +10,7 @@ import { Emitter, EventListener } from '../util/emitter';
 import { LobbyUpdate } from '../packets/incoming/lobby-update';
 import { LoadingState } from '../game/loading-state';
 import chalk from 'chalk';
+import { VERSION, FAKE_CLIENTS } from '../globals';
 
 export class LobbyState extends Emitter implements GameState {
 
@@ -22,7 +23,7 @@ export class LobbyState extends Emitter implements GameState {
     super();
     this.players = new Map();
     // add some fake clients.
-    for (let i = 0; i < 7; i++) {
+    for (let i = 0; i < FAKE_CLIENTS; i++) {
       const fakeClient = new Client(undefined);
       this.players.set(fakeClient.id, {
         client: fakeClient,
@@ -46,7 +47,7 @@ export class LobbyState extends Emitter implements GameState {
         }
 
         // if they used the wrong version, disconnect them.
-        if (packet.version !== 12345) {
+        if (packet.version !== VERSION) {
           client.io.destroy(new Error(`Client using incorrect version (${packet.version})`));
           return;
         }
