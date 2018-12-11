@@ -11,6 +11,7 @@ import { LobbyUpdate } from '../packets/incoming/lobby-update';
 import { LoadingState } from '../game/loading-state';
 import chalk from 'chalk';
 import { VERSION, FAKE_CLIENTS } from '../globals';
+import { FailurePacket, FailureCode } from '../packets/outgoing/failure';
 
 export class LobbyState extends Emitter implements GameState {
 
@@ -48,6 +49,7 @@ export class LobbyState extends Emitter implements GameState {
 
         // if they used the wrong version, disconnect them.
         if (packet.version !== VERSION) {
+          client.io.send(new FailurePacket(FailureCode.IncorrectVersion, 'Wrong game version.'));
           client.io.destroy(new Error(`Client using incorrect version (${packet.version})`));
           return;
         }
