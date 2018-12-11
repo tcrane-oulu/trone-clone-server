@@ -1,6 +1,7 @@
 {
   "tickRate": 48,
   "mapSize": 200,
+  "carSpeed": 50,
   "version": 6520,
   "fakeClients": 2
 }
