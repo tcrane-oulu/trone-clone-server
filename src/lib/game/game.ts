@@ -93,12 +93,17 @@ export class Game extends Emitter implements GameState {
       }
       // if there are 0 or 1 alive players left, the game is over.
       if (aliveCount <= 1) {
-        let winnerId = -1;
+        let winner: Player;
         if (aliveCount === 1) {
           // we have a winner.
-          winnerId = [...players.values()].filter((p) => !p.dead)[0].client.id;
+          winner = [...players.values()].filter((p) => !p.dead)[0];
         }
-        const endGame = new EndGamePacket(winnerId);
+        let endGame: EndGamePacket;
+        if (winner) {
+          endGame = new EndGamePacket(winner.client.id, winner.name);
+        } else {
+          endGame = new EndGamePacket(-1, 'Tie');
+        }
         for (const player of players.values()) {
           player.client.io.send(endGame);
         }
